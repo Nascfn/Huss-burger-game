@@ -1,12 +1,13 @@
 // Progress is saved in the browser's localStorage (no backend needed).
 
 const SAVE_KEY = 'huss_huss_huss_save';
-const SAVE_VERSION = 1;
+const SAVE_VERSION = 2;
 
 function defaults() {
   return {
     version: SAVE_VERSION,
-    highScore: 0,
+    unlocked: 0, // highest party index you can play
+    levels: {}, // { [levelId]: { stars } }
     bestCombo: 0,
     shiftsPlayed: 0,
     totalOrders: 0,
@@ -21,8 +22,14 @@ export function loadGame() {
     if (!raw) return defaults();
     const data = JSON.parse(raw);
     const base = defaults();
-    // Merge so fields added in later versions get default values.
-    return { ...base, ...data, settings: { ...base.settings, ...(data.settings || {}) } };
+    // Merge so fields added in later versions get default values (v1 saves keep their lifetime stats).
+    return {
+      ...base,
+      ...data,
+      version: SAVE_VERSION,
+      levels: { ...base.levels, ...(data.levels || {}) },
+      settings: { ...base.settings, ...(data.settings || {}) },
+    };
   } catch {
     return defaults();
   }

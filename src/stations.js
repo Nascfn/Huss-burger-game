@@ -44,7 +44,24 @@ const stickerTex = textTexture((g, s) => {
   g.fillText('HHH', s / 2, s / 2 + 4);
 });
 
+// Fry carton print: red with a yellow smile on each of the 4 faces.
+const cartonTex = textTexture((g, s) => {
+  g.fillStyle = '#d9412b';
+  g.fillRect(0, 0, s, s);
+  for (let i = 0; i < 4; i++) {
+    const cx = (i + 0.5) * (s / 4);
+    g.strokeStyle = '#ffc23d';
+    g.lineWidth = 9;
+    g.beginPath();
+    g.arc(cx, s * 0.42, 20, 0.15 * Math.PI, 0.85 * Math.PI);
+    g.stroke();
+    g.fillStyle = '#ffc23d';
+    g.fillRect(i * (s / 4), s - 26, s / 4, 10);
+  }
+});
+
 const MAT = {
+  cartonPrint: std(0xffffff, { map: cartonTex, side: THREE.DoubleSide, roughness: 0.5 }),
   paper: std(0xffffff, { map: paperTex, side: THREE.DoubleSide, roughness: 0.85 }),
   bun: std(0xd99a4e, { roughness: 0.6 }),
   patty: std(0x4a2a17, { roughness: 0.9 }),
@@ -60,7 +77,7 @@ const MAT = {
   straw: std(0xffe14d),
   kraft: std(0xb98a5a, { side: THREE.DoubleSide, roughness: 0.9 }),
   sticker: new THREE.MeshStandardMaterial({ map: stickerTex, transparent: true, roughness: 0.5 }),
-  steel: std(0xb8bcc2, { metalness: 0.7, roughness: 0.3 }),
+  steel: std(0xb8bcc2, { metalness: 0.45, roughness: 0.5 }),
   dark: std(0x2a2522, { roughness: 0.6 }),
   red: std(0xc23b26, { roughness: 0.5 }),
 };
@@ -184,7 +201,7 @@ export class BurgerStation extends Station {
 
   buildDecor() {
     // Warm heat-lamp glow on the wrapping spot (no lamp mesh, so it doesn't block the window)
-    const glow = new THREE.PointLight(0xff9a40, 0.6, 1.2);
+    const glow = new THREE.PointLight(0xff9a40, 0.12, 1.2);
     glow.position.set(0, 0.55, -0.05);
     this.group.add(glow);
   }
@@ -233,7 +250,7 @@ export class FriesStation extends Station {
     // Fryer behind
     const fryer = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.22, 0.3), MAT.steel);
     fryer.position.set(0.02, 0.11, -0.4);
-    const oil = flatPlane(0.36, 0.24, std(0x8a5a12, { roughness: 0.1, metalness: 0.2 }));
+    const oil = flatPlane(0.36, 0.24, std(0x8a5a12, { roughness: 0.45, metalness: 0 }));
     oil.position.set(0.02, 0.221, -0.4);
     // Warming tray with a pile of fries on the left
     const tray = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.02, 0.2), MAT.steel);
@@ -250,12 +267,13 @@ export class FriesStation extends Station {
 
   buildItem() {
     const item = new THREE.Group();
+    // Tapered carton: ~±3.5cm wide at the bottom, ~±5.3cm at the top (x); about half that front-to-back.
     const geo = new THREE.CylinderGeometry(0.075, 0.05, 0.13, 4, 1, true);
     geo.rotateY(Math.PI / 4);
-    const carton = new THREE.Mesh(geo, MAT.carton);
+    const carton = new THREE.Mesh(geo, MAT.cartonPrint);
     carton.scale.z = 0.55;
     carton.position.y = 0.065;
-    const bottom = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.004, 0.04), MAT.carton);
+    const bottom = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.004, 0.038), MAT.carton);
     bottom.position.y = 0.002;
     item.add(carton, bottom);
     this.batches = [];
@@ -267,15 +285,14 @@ export class FriesStation extends Station {
     const batch = new THREE.Group();
     this.item.add(batch);
     this.batches.push(batch);
-    const fries = [];
     for (let j = 0; j < 9; j++) {
       const f = new THREE.Mesh(fryGeo, MAT.fry);
       f.castShadow = true;
-      const target = 0.07 + i * 0.024 + Math.random() * 0.012;
-      f.position.set((Math.random() - 0.5) * 0.07, target + 0.3, (Math.random() - 0.5) * 0.03);
-      f.rotation.set((Math.random() - 0.5) * 0.4, Math.random() * Math.PI, (Math.random() - 0.5) * 0.5);
+      // Keep every fry (including its tilted bottom end) inside the tapered carton walls.
+      const target = 0.078 + i * 0.02 + Math.random() * 0.01;
+      f.position.set((Math.random() - 0.5) * 0.05, target + 0.3, (Math.random() - 0.5) * 0.016);
+      f.rotation.set((Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.28);
       batch.add(f);
-      fries.push(f);
       tween(0.22, (k) => { f.position.y = target + (1 - k) * 0.3; }, ease.outBounce, this, j * 0.012);
     }
     return wait(0.32);

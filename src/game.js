@@ -1,6 +1,7 @@
-// Game flow: shift -> orders -> steps -> 3 quick-time key presses per step.
-import { RECIPES, QTE_KEYS, SHIFT_LENGTH, makeOrder, normalizeKey } from './orders.js';
-// Each order: a party guest steps up to the window, you pack it, then hand the bag out to them.
+// Game flow: party (level) -> orders -> steps -> 3 quick-time key presses per step.
+// Each order: a guest steps up to the window, you pack it, then hand the bag out to them.
+import { RECIPES, QTE_KEYS, makeOrder, normalizeKey } from './orders.js';
+import { LEVELS } from './levels.js';
 import { wait } from './tween.js';
 import { saveGame } from './save.js';
 
@@ -12,27 +13,62 @@ export class Game {
     this.state = 'title';
     this.step = null;
     this.order = null;
+    this.levelIndex = Math.min(save.unlocked, LEVELS.length - 1);
   }
 
-  get multiplier() {
-    return 1 + Math.min(3, Math.floor(this.stats.combo / 6));
+  get level() {
+    return LEVELS[this.levelIndex];
   }
 
-  startShift() {
+  showTitle() {
+    this.state = 'title';
+    this.rig.focus(0.25);
+    this.rig.lookUp(true);
+    this.hud.showTitle(this.save, LEVELS);
+  }
+
+  /** Enter key / "Next party" button: play the next party you haven't beaten. */
+  startNext() {
+    if (this.state === 'playing') return;
+    let i = this.levelIndex;
+    if (this.state === 'summary') i = Math.min(this.levelIndex + 1, this.save.unlocked, LEVELS.length - 1);
+    else i = Math.min(this.save.unlocked, LEVELS.length - 1);
+    this.startLevel(i);
+  }
+
+  startLevel(i) {
+    if (this.state === 'playing' || i > this.save.unlocked) return;
+    this.levelIndex = i;
+    const level = this.level;
     this.audio.resume();
-    this.audio.startMusic();
-    this.stats = { score: 0, combo: 0, bestCombo: 0, hits: 0, misses: 0, orders: 0, perfectSteps: 0, steps: 0 };
+    if (this.party.levelId !== level.id) this.party.setLevel(level);
+    this.audio.startMusic(level);
+    this.stats = { combo: 0, bestCombo: 0, hits: 0, misses: 0, orders: 0, happy: 0, perfectSteps: 0, steps: 0 };
     this.state = 'playing';
-    this.hud.showPlaying();
-    this.hud.setScore(this.stats, this.multiplier);
-    this.runShift();
+    this.hud.showPlaying(level);
+    this.hud.setCombo(0);
+    this.runLevel();
   }
 
-  async runShift() {
-    const orders = Array.from({ length: SHIFT_LENGTH }, (_, i) => makeOrder(i + 1));
+  async runLevel() {
+    const level = this.level;
+    const orders = Array.from({ length: level.orders }, (_, k) => makeOrder(level, k + 1, this.levelIndex));
+    this.totalSteps = orders.reduce((n, o) => n + o.items.length + 1, 0);
+    this.doneSteps = 0;
+    this.updateProgress();
     this.party.startQueue(orders);
+    this.rig.focus(0.25);
+    this.rig.lookUp(true);
+    this.hud.showBanner(level, this.levelIndex);
+    await wait(2.0);
     for (const order of orders) await this.runOrder(order);
-    this.endShift();
+    this.endLevel();
+  }
+
+  /** The bar at the top shows how much work is LEFT at this party. */
+  updateProgress() {
+    const partial = this.step ? this.step.idx / 3 : 0;
+    this.hud.setProgress(1 - (this.doneSteps + partial) / this.totalSteps);
   }
 
   async runOrder(order) {
@@ -41,7 +77,7 @@ export class Game {
     this.rig.lookUp(true);
     await this.party.frontReady();
     const guest = this.party.front;
-    this.hud.showTicket(order, guest.name, this.party.queue.length);
+    this.hud.showTicket(order, guest.name);
     guest.shout();
     await wait(1.0);
     this.rig.lookUp(false);
@@ -66,22 +102,20 @@ export class Game {
     await this.runStep('bag', this.bag);
     this.hud.markItemDone(order.items.length);
 
-    const frac = Math.max(0, this.patienceLeft / order.patience);
-    const bonus = Math.round(50 + 150 * frac);
+    const happy = this.patienceLeft / order.patience > 0.3;
     this.order = null;
 
     // Hand the bag out the window.
     this.rig.lookUp(true);
     await this.bag.handOffTo(guest);
-    const happy = frac > 0.3;
-    this.addScore(bonus);
-    this.hud.flash(`${happy ? 'ORDER UP!' : 'FINALLY...'} +${bonus}`, happy ? 'good' : 'meh');
+    this.hud.flash(happy ? 'ORDER UP!' : 'FINALLY...', happy ? 'good' : 'meh');
     this.audio.ching();
     this.audio.cheer(happy);
     this.party.serveFront(happy);
     this.stats.orders++;
+    if (happy) this.stats.happy++;
     this.save.totalOrders++;
-    saveGame(this.save); // keep lifetime stats even if the tab closes mid-shift
+    saveGame(this.save); // keep lifetime stats even if the tab closes mid-party
     this.hud.hideTicket();
     await wait(0.7);
   }
@@ -124,10 +158,11 @@ export class Game {
 
     this.audio.huss(i, 1 + Math.min(st.combo, 24) * 0.005);
     s.station.advance(i);
-    this.addScore(10 * this.multiplier);
-    this.hud.popup(`+${10 * this.multiplier}`);
+    this.hud.setCombo(st.combo);
+    this.hud.popup('huss!');
 
     s.idx++;
+    this.updateProgress();
     if (s.idx >= 3) {
       s.accepting = false;
       this.hud.updatePrompt(s, 'hit');
@@ -142,7 +177,6 @@ export class Game {
     this.stats.steps++;
     if (s.perfect) {
       this.stats.perfectSteps++;
-      this.addScore(25);
       this.hud.flash('PERFECT!', 'perfect');
       this.audio.perfect();
     }
@@ -150,6 +184,8 @@ export class Game {
     await s.station.complete();
     this.hud.hidePrompt();
     this.step = null;
+    this.doneSteps++;
+    this.updateProgress();
     s.resolve();
   }
 
@@ -159,21 +195,17 @@ export class Game {
     s.perfect = false;
     this.stats.combo = 0;
     this.stats.misses++;
-    this.hud.setScore(this.stats, this.multiplier);
+    this.hud.setCombo(0);
     this.audio.buzz();
     this.rig.kick(1);
     this.hud.updatePrompt(s, 'miss');
     s.station.rewind();
     await wait(MISS_PAUSE);
     s.idx = 0;
+    this.updateProgress();
     s.accepting = true;
     s.timeLeft = this.order.window;
     this.hud.updatePrompt(s);
-  }
-
-  addScore(n) {
-    this.stats.score += n;
-    this.hud.setScore(this.stats, this.multiplier);
   }
 
   update(dt) {
@@ -192,16 +224,37 @@ export class Game {
     }
   }
 
-  endShift() {
+  /** 3 stars: every guest happy and 90%+ accuracy. 2 stars: most guests happy. 1 star: you made it. */
+  starsFor(st) {
+    const total = st.hits + st.misses;
+    const acc = total ? st.hits / total : 1;
+    const happyFrac = st.happy / Math.max(1, st.orders);
+    if (happyFrac === 1 && acc >= 0.9) return 3;
+    if (happyFrac >= 0.7) return 2;
+    return 1;
+  }
+
+  endLevel() {
     this.state = 'summary';
     const sv = this.save;
-    const isNewBest = this.stats.score > sv.highScore;
-    sv.highScore = Math.max(sv.highScore, this.stats.score);
+    const level = this.level;
+    const stars = this.starsFor(this.stats);
+    const prev = sv.levels[level.id]?.stars || 0;
+    sv.levels[level.id] = { stars: Math.max(prev, stars) };
+    const unlockedNew = this.levelIndex + 1 < LEVELS.length && sv.unlocked <= this.levelIndex;
+    sv.unlocked = Math.max(sv.unlocked, Math.min(this.levelIndex + 1, LEVELS.length - 1));
     sv.bestCombo = Math.max(sv.bestCombo, this.stats.bestCombo);
     sv.shiftsPlayed++;
     saveGame(sv);
     this.rig.focus(0.25);
     this.rig.lookUp(true);
-    this.hud.showSummary(this.stats, sv, isNewBest);
+    this.hud.showSummary({
+      level,
+      stats: this.stats,
+      stars,
+      next: LEVELS[this.levelIndex + 1],
+      unlockedNew,
+      isLast: this.levelIndex === LEVELS.length - 1,
+    });
   }
 }

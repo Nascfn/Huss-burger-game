@@ -87,41 +87,108 @@ export class GameAudio {
 
   // ---------- party music (synthesized, muffled like it's outside) ----------
 
-  startMusic() {
-    if (this.music) return;
+  /** Tempo used for the crowd's dancing before any music has started (title screen). */
+  setTempo(bpm) {
+    this.idleBpm = bpm;
+  }
+
+  /**
+   * Start (or switch to) a party's music. Energy 0-4 adds layers:
+   * 0 chill groove, 1 + claps, 2 + hats, 3 + chord stabs, 4 + 16th hats and an arpeggio lead.
+   */
+  startMusic(level) {
+    if (this.music && this.music.id === level.id) return;
+    this.stopMusic();
     const ctx = this.ctx;
     const muffle = ctx.createBiquadFilter();
     muffle.type = 'lowpass';
-    muffle.frequency.value = 1600;
+    muffle.frequency.value = 1100 + level.energy * 450; // bigger parties are louder through the wall
     const gain = ctx.createGain();
-    gain.gain.value = 0.32;
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.26 + level.energy * 0.025, ctx.currentTime + 1.2);
     muffle.connect(gain).connect(this.master);
     this.noise = this.noise || this._noiseBuffer();
-    this.music = { out: muffle, bpm: 124, start: ctx.currentTime + 0.1, step: 0 };
+    this.music = { id: level.id, out: muffle, gain, bpm: level.bpm, energy: level.energy, start: ctx.currentTime + 0.1, step: 0 };
+    this.idleBpm = level.bpm;
     this._musicTimer = setInterval(() => this._scheduleMusic(), 40);
+  }
+
+  stopMusic() {
+    if (!this.music) return;
+    clearInterval(this._musicTimer);
+    const { gain } = this.music;
+    const t = this.ctx.currentTime;
+    gain.gain.cancelScheduledValues(t);
+    gain.gain.setValueAtTime(gain.gain.value, t);
+    gain.gain.linearRampToValueAtTime(0, t + 0.4);
+    setTimeout(() => gain.disconnect(), 600);
+    this.music = null;
   }
 
   /** Beats elapsed since the music started (fractional). Drives the dancing. */
   beatTime() {
-    if (!this.music) return (performance.now() / 1000) * (124 / 60);
+    if (!this.music) return (performance.now() / 1000) * ((this.idleBpm || 120) / 60);
     return Math.max(0, (this.ctx.currentTime - this.music.start) * (this.music.bpm / 60));
   }
 
   _scheduleMusic() {
     const m = this.music;
+    if (!m) return;
+    const e = m.energy;
     const eighth = 30 / m.bpm;
     const horizon = this.ctx.currentTime + 0.2;
-    // A minor-ish offbeat bassline, 16 eighth notes long
-    const BASS = [0, 55, 0, 55, 0, 55, 0, 65.4, 0, 43.7, 0, 43.7, 0, 49, 0, 49];
+    // Two-bar loop in eighth notes: A minor - F - G
+    const ROOTS = [55, 55, 55, 55, 43.65, 43.65, 49, 49];
     while (m.start + m.step * eighth < horizon) {
       const t = m.start + m.step * eighth;
       const s = m.step % 16;
-      if (s % 2 === 0) this._kick(t);
-      else this._hat(t);
-      if (s % 8 === 4) this._clap(t);
-      if (BASS[s]) this._bass(t, BASS[s], eighth * 0.9);
+      const root = ROOTS[Math.floor(s / 2)];
+      const onBeat = s % 2 === 0;
+      if (e === 0) {
+        // chill: soft kick on 1 and 3, long warm bass notes, light shaker
+        if (s % 8 === 0 || s % 8 === 4) this._kick(t, 0.6);
+        if (s % 4 === 0) this._bass(t, root, eighth * 3.5, 'triangle', 0.4);
+        if (!onBeat) this._noiseHit(t, 'highpass', 8000, 0.07, 0.04);
+      } else {
+        if (onBeat) this._kick(t);
+        if (s % 8 === 4) this._clap(t);
+        if (!onBeat) this._bass(t, root, eighth * 0.9);
+        if (e >= 2 && !onBeat) this._hat(t);
+        if (e >= 3 && (s === 3 || s === 11 || s === 14)) this._stab(t, root * 4, eighth * 0.8);
+        if (e >= 4) {
+          this._noiseHit(t + eighth / 2, 'highpass', 9000, 0.12, 0.03);
+          const ARP = [1, 1.5, 2, 2.4, 3, 2.4, 2, 1.5];
+          this._lead(t, root * 4 * ARP[s % 8], eighth * 0.7);
+        }
+      }
       m.step++;
     }
+  }
+
+  _stab(t, freq, dur) {
+    for (const mult of [1, 1.19, 1.5]) {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'square';
+      osc.frequency.value = freq * mult;
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(0.05, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      osc.connect(g).connect(this.music.out);
+      osc.start(t);
+      osc.stop(t + dur + 0.02);
+    }
+  }
+
+  _lead(t, freq, dur) {
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.045, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.connect(g).connect(this.music.out);
+    osc.start(t);
+    osc.stop(t + dur + 0.02);
   }
 
   _noiseBuffer() {
@@ -131,12 +198,12 @@ export class GameAudio {
     return buf;
   }
 
-  _kick(t) {
+  _kick(t, vol = 0.9) {
     const osc = this.ctx.createOscillator();
     osc.frequency.setValueAtTime(150, t);
     osc.frequency.exponentialRampToValueAtTime(45, t + 0.12);
     const g = this.ctx.createGain();
-    g.gain.setValueAtTime(0.9, t);
+    g.gain.setValueAtTime(vol, t);
     g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
     osc.connect(g).connect(this.music.out);
     osc.start(t);
@@ -164,16 +231,16 @@ export class GameAudio {
     this._noiseHit(t, 'bandpass', 1500, 0.6, 0.14);
   }
 
-  _bass(t, freq, dur) {
+  _bass(t, freq, dur, type = 'sawtooth', vol = 0.35) {
     const osc = this.ctx.createOscillator();
-    osc.type = 'sawtooth';
+    osc.type = type;
     osc.frequency.value = freq;
     const f = this.ctx.createBiquadFilter();
     f.type = 'lowpass';
     f.frequency.setValueAtTime(700, t);
     f.frequency.exponentialRampToValueAtTime(150, t + dur);
     const g = this.ctx.createGain();
-    g.gain.setValueAtTime(0.35, t);
+    g.gain.setValueAtTime(vol, t);
     g.gain.exponentialRampToValueAtTime(0.001, t + dur);
     osc.connect(f).connect(g).connect(this.music.out);
     osc.start(t);

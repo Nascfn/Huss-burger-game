@@ -22,10 +22,8 @@ export const keyLabel = (code) =>
   `<svg class="arrow" viewBox="0 0 24 24" style="transform: rotate(${ARROW_ROTATION[code]}deg)">` +
   `<path d="M12 2 L21 12 H15.5 V22 H8.5 V12 H3 Z" fill="currentColor"/></svg>`;
 
-export const SHIFT_LENGTH = 8;
-
-// The first orders teach one new item at a time.
-const SCRIPTED = [['burger'], ['burger', 'fries'], ['drink', 'burger']];
+// The first party teaches one new item at a time.
+const TUTORIAL = [['burger'], ['burger', 'fries'], ['drink', 'burger'], ['fries', 'drink']];
 
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -35,21 +33,26 @@ function shuffle(arr) {
   return arr;
 }
 
-export function makeOrder(n) {
+/** Order `n` (1-based) of a party. Orders get bigger and faster as the party goes on. */
+export function makeOrder(level, n, levelIndex) {
   let items;
-  if (n <= SCRIPTED.length) {
-    items = [...SCRIPTED[n - 1]];
+  if (levelIndex === 0 && n <= TUTORIAL.length) {
+    items = [...TUTORIAL[n - 1]];
   } else {
-    items = ['burger', 'fries', 'drink'];
-    if (n >= 6 || (n === 5 && Math.random() < 0.5)) items.push(items[Math.floor(Math.random() * 3)]);
+    const [min, max] = level.items;
+    const t = level.orders > 1 ? (n - 1) / (level.orders - 1) : 1;
+    const count = Math.min(max, min + Math.floor(t * (max - min + 1)));
+    const pool = shuffle(['burger', 'fries', 'drink']);
+    items = pool.slice(0, Math.min(count, 3));
+    while (items.length < count) items.push(pool[Math.floor(Math.random() * 3)]);
     shuffle(items);
   }
   return {
     number: n,
     items,
-    // Seconds allowed per key press; shrinks as the shift goes on.
-    window: Math.max(0.78, 1.9 - 0.16 * (n - 1)),
-    // Seconds before the speed bonus runs out.
+    // Seconds allowed per key press; shrinks as the party goes on.
+    window: Math.max(0.8, level.window - 0.04 * (n - 1)),
+    // Seconds before the customer gets annoyed.
     patience: 8 + items.length * 6,
   };
 }

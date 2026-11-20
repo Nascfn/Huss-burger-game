@@ -12,18 +12,22 @@
     <div id="app"></div>
 
     <div id="hud" class="hidden">
+      <!-- How much work is left at this party -->
+      <div id="progress">
+        <div id="party-name"></div>
+        <div class="bar"><div id="progress-fill"></div><span class="bar-icon">🍔</span></div>
+      </div>
+
       <div id="ticket" class="panel hidden">
         <div class="ticket-head"><span>ORDER</span><span id="order-num">#1</span></div>
         <div id="ticket-guest"></div>
         <ul id="ticket-items"></ul>
         <div class="patience"><div id="patience-fill"></div></div>
-        <div id="ticket-line"></div>
       </div>
 
-      <div id="scorebox" class="panel">
-        <div class="label">SCORE</div>
-        <div id="score">0</div>
-        <div id="combo"></div>
+      <div id="combo" class="panel">
+        <div class="label">COMBO</div>
+        <div class="combo-num">0</div>
       </div>
 
       <div id="recipes" class="panel">
@@ -45,29 +49,34 @@
       </div>
 
       <div id="flash"></div>
+      <div id="banner"></div>
       <div id="popups"></div>
     </div>
 
     <div id="title" class="overlay">
-      <div class="card">
-        <h1>HUSS<br />HUSS<br />HUSS</h1>
-        <p class="tag">There's a huge party outside, and you're the only one on the grill.</p>
-        <p>Pack every order for the hungry crowd. Every clean move: <em class="huss">huss</em>.
+      <div class="card wide">
+        <h1>HUSS HUSS HUSS</h1>
+        <p class="tag">The parties keep getting bigger, and you're the only one on the grill.</p>
+        <p>Feed every guest. Every clean move: <em class="huss">huss</em>.
           Each item always uses the <strong>same 3 keys</strong>, so learn them and go fast.</p>
+        <div id="level-list"></div>
         <div class="recipe-list big"></div>
-        <button id="start-btn">Start shift</button>
-        <p class="small">or press Enter</p>
-        <p id="title-best" class="small"></p>
+        <p class="small">Pick a party · Enter plays the next one · arrows or WASD · M to mute</p>
       </div>
     </div>
 
     <div id="summary" class="overlay hidden">
       <div class="card">
-        <h2>Shift over!</h2>
-        <div id="new-best" class="hidden">NEW HIGH SCORE!</div>
+        <h2 id="sum-title">Party fed!</h2>
+        <div id="sum-party"></div>
+        <div id="sum-stars"></div>
+        <div id="sum-unlock" class="hidden"></div>
         <dl id="summary-stats"></dl>
-        <button id="again-btn">Next shift</button>
-        <p class="small">or press Enter</p>
+        <p id="sum-hint" class="small"></p>
+        <div class="btn-row">
+          <button id="next-btn">Next party</button>
+          <button id="list-btn" class="secondary">All parties</button>
+        </div>
       </div>
     </div>
 

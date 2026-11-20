@@ -1,4 +1,9 @@
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 export const COUNTER_Y = 0.9; // height of the counter top (meters)
 export const STATION_Z = -0.05; // depth where items sit on the counter
@@ -62,13 +67,34 @@ export function createWorld(container) {
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(NIGHT);
-  scene.fog = new THREE.Fog(NIGHT, 12, 34);
+  scene.fog = new THREE.Fog(NIGHT, 14, 40);
 
-  const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.01, 80);
+  // Soft image-based lighting gives every material gentle reflections and fill light.
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environmentIntensity = 0.35;
+
+  const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.01, 200);
+
+  // Post-processing: bloom makes anything brighter than white (neon, lasers, string lights) glow.
+  const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
+  const composer = new EffectComposer(renderer, target);
+  composer.addPass(new RenderPass(scene, camera));
+  const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.7, 0.55, 1.25);
+  composer.addPass(bloom);
+  composer.addPass(new OutputPass());
+  const resize = () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setPixelRatio(renderer.getPixelRatio());
+    composer.setSize(window.innerWidth, window.innerHeight);
+  };
+  resize();
 
   // Lights (warm kitchen; the party brings its own colored lights)
-  scene.add(new THREE.HemisphereLight(0xfff3e0, 0x4a3226, 1.2));
-  const key = new THREE.DirectionalLight(0xfff6e8, 2.2);
+  scene.add(new THREE.HemisphereLight(0xfff3e0, 0x4a3226, 0.75));
+  const key = new THREE.DirectionalLight(0xfff6e8, 1.8);
   key.position.set(0.6, 3, 1.4);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
@@ -141,9 +167,9 @@ export function createWorld(container) {
   // Counter: cabinet + steel top
   const cabinet = addBox(3.4, COUNTER_Y - 0.03, 0.95, 0.2, (COUNTER_Y - 0.03) / 2, -0.2, std(0xb5462f));
   cabinet.castShadow = false;
-  addBox(3.5, 0.03, 1.0, 0.2, COUNTER_Y - 0.015, -0.2, std(0xc8ccd0, { metalness: 0.6, roughness: 0.35 }));
+  addBox(3.5, 0.03, 1.0, 0.2, COUNTER_Y - 0.015, -0.2, std(0xaeb3ba, { metalness: 0.35, roughness: 0.55 }));
 
-  return { renderer, scene, camera };
+  return { renderer, scene, camera, composer, resize };
 }
 
 const lerp = (a, b, t) => a + (b - a) * t;
