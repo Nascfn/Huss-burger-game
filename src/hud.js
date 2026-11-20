@@ -54,7 +54,7 @@ export class Hud {
     const acc = total ? Math.round((stats.hits / total) * 100) : 100;
     const rows = [
       ['Score', stats.score],
-      ['Orders packed', stats.orders],
+      ['Party guests fed', stats.orders],
       ['Accuracy', `${acc}%`],
       ['Perfect steps', `${stats.perfectSteps} / ${stats.steps}`],
       ['Best combo', stats.bestCombo],
@@ -73,8 +73,10 @@ export class Hud {
 
   // ----- ticket -----
 
-  showTicket(order) {
+  showTicket(order, guestName, inLine) {
     $('order-num').textContent = `#${order.number}`;
+    $('ticket-guest').textContent = `for ${guestName}`;
+    $('ticket-line').textContent = inLine > 1 ? `${inLine - 1} more waiting` : 'last one!';
     const rows = [...order.items.map((t) => RECIPES[t].name), RECIPES.bag.name];
     $('ticket-items').innerHTML = rows.map((n) => `<li>${n}</li>`).join('');
     $('ticket').classList.remove('hidden');

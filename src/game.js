@@ -1,13 +1,14 @@
 // Game flow: shift -> orders -> steps -> 3 quick-time key presses per step.
 import { RECIPES, QTE_KEYS, SHIFT_LENGTH, makeOrder, normalizeKey } from './orders.js';
+// Each order: a party guest steps up to the window, you pack it, then hand the bag out to them.
 import { wait } from './tween.js';
 import { saveGame } from './save.js';
 
 const MISS_PAUSE = 0.7; // seconds before you can retry a failed step
 
 export class Game {
-  constructor({ audio, rig, stations, bag, hud, save }) {
-    Object.assign(this, { audio, rig, stations, bag, hud, save });
+  constructor({ audio, rig, stations, bag, party, hud, save }) {
+    Object.assign(this, { audio, rig, stations, bag, party, hud, save });
     this.state = 'title';
     this.step = null;
     this.order = null;
@@ -19,6 +20,7 @@ export class Game {
 
   startShift() {
     this.audio.resume();
+    this.audio.startMusic();
     this.stats = { score: 0, combo: 0, bestCombo: 0, hits: 0, misses: 0, orders: 0, perfectSteps: 0, steps: 0 };
     this.state = 'playing';
     this.hud.showPlaying();
@@ -27,18 +29,26 @@ export class Game {
   }
 
   async runShift() {
-    for (let n = 1; n <= SHIFT_LENGTH; n++) {
-      await this.runOrder(makeOrder(n));
-    }
+    const orders = Array.from({ length: SHIFT_LENGTH }, (_, i) => makeOrder(i + 1));
+    this.party.startQueue(orders);
+    for (const order of orders) await this.runOrder(order);
     this.endShift();
   }
 
   async runOrder(order) {
+    // The next guest steps up to the window and shouts their order.
+    this.rig.focus(this.bag.x);
+    this.rig.lookUp(true);
+    await this.party.frontReady();
+    const guest = this.party.front;
+    this.hud.showTicket(order, guest.name, this.party.queue.length);
+    guest.shout();
+    await wait(1.0);
+    this.rig.lookUp(false);
     this.order = order;
     this.patienceLeft = order.patience;
-    this.hud.showTicket(order);
     this.rig.focus(this.stations[order.items[0]].x);
-    await wait(0.5);
+    await wait(0.35);
 
     const flights = [];
     for (let i = 0; i < order.items.length; i++) {
@@ -58,15 +68,22 @@ export class Game {
 
     const frac = Math.max(0, this.patienceLeft / order.patience);
     const bonus = Math.round(50 + 150 * frac);
+    this.order = null;
+
+    // Hand the bag out the window.
+    this.rig.lookUp(true);
+    await this.bag.handOffTo(guest);
+    const happy = frac > 0.3;
     this.addScore(bonus);
-    this.hud.flash(`ORDER UP! +${bonus}`, 'good');
+    this.hud.flash(`${happy ? 'ORDER UP!' : 'FINALLY...'} +${bonus}`, happy ? 'good' : 'meh');
     this.audio.ching();
+    this.audio.cheer(happy);
+    this.party.serveFront(happy);
     this.stats.orders++;
     this.save.totalOrders++;
     saveGame(this.save); // keep lifetime stats even if the tab closes mid-shift
-    this.order = null;
     this.hud.hideTicket();
-    await this.bag.handOff();
+    await wait(0.7);
   }
 
   /** Resolves once all 3 presses of this step are done. */
@@ -163,7 +180,9 @@ export class Game {
     if (this.state !== 'playing') return;
     if (this.order) {
       this.patienceLeft = Math.max(0, this.patienceLeft - dt);
-      this.hud.setPatience(this.patienceLeft / this.order.patience);
+      const frac = this.patienceLeft / this.order.patience;
+      this.hud.setPatience(frac);
+      this.party.setFrontMood(frac);
     }
     const s = this.step;
     if (s && s.accepting) {
@@ -181,6 +200,8 @@ export class Game {
     sv.bestCombo = Math.max(sv.bestCombo, this.stats.bestCombo);
     sv.shiftsPlayed++;
     saveGame(sv);
+    this.rig.focus(0.25);
+    this.rig.lookUp(true);
     this.hud.showSummary(this.stats, sv, isNewBest);
   }
 }

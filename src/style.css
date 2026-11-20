@@ -49,6 +49,8 @@ html, body {
 @keyframes slideIn { from { transform: translateY(-140%) rotate(-2deg); } }
 
 .ticket-head { display: flex; justify-content: space-between; font-family: var(--display); font-size: 18px; color: var(--red); }
+#ticket-guest { font-weight: 700; font-size: 15px; margin-top: 2px; }
+#ticket-line { font-size: 12px; font-weight: 600; opacity: 0.65; margin-top: 6px; }
 #ticket-items { list-style: none; margin: 8px 0; padding: 0; font-weight: 700; font-size: 17px; }
 #ticket-items li { padding: 3px 6px; border-radius: 6px; }
 #ticket-items li::before { content: '○ '; }
@@ -138,6 +140,7 @@ kbd {
 }
 #flash.perfect { color: var(--yellow); }
 #flash.good { color: var(--green); }
+#flash.meh { color: var(--cream); }
 #flash.show { animation: flash 1s ease-out forwards; }
 @keyframes flash {
   0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
@@ -161,11 +164,12 @@ kbd {
 
 .overlay {
   position: absolute; inset: 0;
-  display: grid; place-items: center;
-  background: rgba(43, 29, 22, 0.55);
+  display: flex; overflow-y: auto;
+  background: rgba(26, 16, 48, 0.45);
   padding: 16px;
 }
 .card {
+  margin: auto;
   background: var(--cream); color: var(--ink);
   border: 4px solid var(--red); border-radius: 18px;
   padding: 28px 36px; text-align: center;
@@ -179,7 +183,8 @@ h1 {
 }
 h2 { font-family: var(--display); font-size: 34px; margin: 0 0 8px; color: var(--red); }
 .tag { font-size: 18px; margin: 0 0 6px; }
-.tag em { font-family: var(--display); font-style: normal; color: var(--red); }
+.tag { font-weight: 700; }
+em.huss { font-family: var(--display); font-style: normal; color: var(--red); }
 button {
   font-family: var(--display); font-size: 22px;
   background: var(--red); color: var(--cream);
@@ -193,6 +198,21 @@ button:active { transform: translateY(3px); box-shadow: 0 2px 0 #8f2615; }
 #summary-stats { display: grid; grid-template-columns: 1fr auto; gap: 6px 20px; text-align: left; margin: 12px 0 20px; font-size: 17px; }
 #summary-stats dt { font-weight: 600; }
 #summary-stats dd { margin: 0; font-family: var(--display); }
+
+@media (max-width: 760px), (max-height: 560px) {
+  #hud { zoom: 0.7; }
+}
+@media (max-height: 560px) {
+  .card { padding: 14px 20px; }
+  h1 { font-size: 30px; }
+  h2 { font-size: 24px; }
+  .tag, .card p { font-size: 13px; margin: 4px 0; }
+  .recipe-list.big { margin: 4px 0 10px; }
+  .recipe-list.big .recipe-row { margin-top: 3px; }
+  .recipe-list.big kbd { width: 26px; height: 26px; }
+  button { font-size: 18px; padding: 8px 20px; }
+  #summary-stats { font-size: 14px; margin: 8px 0 12px; gap: 3px 16px; }
+}
 
 @media (max-width: 600px) {
   #recipes { display: none; }

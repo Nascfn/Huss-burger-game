@@ -1,6 +1,7 @@
 import './style.css';
 import { createWorld, CameraRig } from './scene.js';
 import { BurgerStation, FriesStation, DrinkStation, BagStation } from './stations.js';
+import { Party } from './party.js';
 import { GameAudio } from './audio.js';
 import { Hud } from './hud.js';
 import { Game } from './game.js';
@@ -17,6 +18,8 @@ const stations = {
   drink: new DrinkStation(scene),
 };
 const bag = new BagStation(scene);
+const party = new Party(scene);
+rig.focus(0.25); // title screen: looking out at the party
 
 const audio = new GameAudio();
 audio.load('huss_huss_huss.wav').catch((e) => console.error('Could not load huss sound', e));
@@ -26,7 +29,7 @@ const applyVolume = () => {
 };
 
 const hud = new Hud();
-const game = new Game({ audio, rig, stations, bag, hud, save });
+const game = new Game({ audio, rig, stations, bag, party, hud, save });
 applyVolume();
 hud.showTitle(save);
 
@@ -64,6 +67,7 @@ renderer.setAnimationLoop((now) => {
   last = now;
   updateTweens(dt);
   game.update(dt);
+  party.update(dt, audio.beatTime());
   rig.update(dt);
   renderer.render(scene, camera);
 });

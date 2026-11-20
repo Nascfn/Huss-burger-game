@@ -22,7 +22,7 @@ export const keyLabel = (code) =>
   `<svg class="arrow" viewBox="0 0 24 24" style="transform: rotate(${ARROW_ROTATION[code]}deg)">` +
   `<path d="M12 2 L21 12 H15.5 V22 H8.5 V12 H3 Z" fill="currentColor"/></svg>`;
 
-export const SHIFT_LENGTH = 5;
+export const SHIFT_LENGTH = 8;
 
 // The first orders teach one new item at a time.
 const SCRIPTED = [['burger'], ['burger', 'fries'], ['drink', 'burger']];
@@ -41,14 +41,14 @@ export function makeOrder(n) {
     items = [...SCRIPTED[n - 1]];
   } else {
     items = ['burger', 'fries', 'drink'];
-    if (n >= 5) items.push(items[Math.floor(Math.random() * 3)]);
+    if (n >= 6 || (n === 5 && Math.random() < 0.5)) items.push(items[Math.floor(Math.random() * 3)]);
     shuffle(items);
   }
   return {
     number: n,
     items,
     // Seconds allowed per key press; shrinks as the shift goes on.
-    window: Math.max(0.8, 1.9 - 0.22 * (n - 1)),
+    window: Math.max(0.78, 1.9 - 0.16 * (n - 1)),
     // Seconds before the speed bonus runs out.
     patience: 8 + items.length * 6,
   };

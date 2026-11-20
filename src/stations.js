@@ -183,22 +183,10 @@ export class BurgerStation extends Station {
   }
 
   buildDecor() {
-    // Heat lamp above the wrapping spot
-    const shade = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.16, 0.1, 24, 1, true),
-      std(0x9a9ea4, { metalness: 0.7, roughness: 0.3, side: THREE.DoubleSide })
-    );
-    shade.position.set(0, 0.62, -0.05);
-    const bulb = new THREE.Mesh(
-      new THREE.SphereGeometry(0.04, 16, 8),
-      new THREE.MeshBasicMaterial({ color: 0xffa040 })
-    );
-    bulb.position.set(0, 0.6, -0.05);
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 1.0), MAT.steel);
-    pole.position.set(0, 1.12, -0.05);
+    // Warm heat-lamp glow on the wrapping spot (no lamp mesh, so it doesn't block the window)
     const glow = new THREE.PointLight(0xff9a40, 0.6, 1.2);
     glow.position.set(0, 0.55, -0.05);
-    this.group.add(shade, bulb, pole, glow);
+    this.group.add(glow);
   }
 
   buildItem() {
@@ -497,18 +485,23 @@ export class BagStation extends Station {
     }
   }
 
-  /** Slide the sealed bag off to the customer and bring a new one. */
-  async handOff() {
+  /** Pass the sealed bag out the window into the customer's hands, then set up a fresh bag. */
+  async handOffTo(guest) {
     cancelTweens(this);
     const bag = this.item;
-    const start = bag.position.clone();
-    await tween(0.45, (k) => {
-      bag.position.set(start.x + k * 1.2, start.y + Math.sin(k * Math.PI) * 0.08, start.z);
-    }, ease.inCubic, this);
-    bag.removeFromParent();
+    bag.scale.set(1, 1, 1);
+    this.scene.attach(bag);
+    const from = bag.position.clone();
+    const to = guest.handWorld();
+    await tween(0.6, (k) => {
+      bag.position.lerpVectors(from, to, k);
+      bag.position.y += Math.sin(k * Math.PI) * 0.3;
+    }, ease.inOutCubic, this);
+    guest.hold(bag);
+    guest.mode = 'hold';
     this.buildItem();
     const fresh = this.item;
     fresh.scale.setScalar(0.001);
-    await tween(0.3, (k) => fresh.scale.setScalar(Math.max(k, 0.001)), ease.outBack, this);
+    tween(0.3, (k) => fresh.scale.setScalar(Math.max(k, 0.001)), ease.outBack, this, 0.4);
   }
 }
