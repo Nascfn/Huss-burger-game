@@ -9,7 +9,18 @@ export const RECIPES = {
 };
 
 export const QTE_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD'];
-export const keyLabel = (code) => code.replace('Key', '');
+
+// Arrow keys and WASD both work; arrows are what the UI shows.
+const ARROW_TO_WASD = { ArrowUp: 'KeyW', ArrowLeft: 'KeyA', ArrowDown: 'KeyS', ArrowRight: 'KeyD' };
+const ARROW_ROTATION = { KeyW: 0, KeyD: 90, KeyS: 180, KeyA: 270 };
+
+/** Turn any accepted key (arrow or WASD) into its WASD code. */
+export const normalizeKey = (code) => ARROW_TO_WASD[code] || code;
+
+/** HTML for a key's on-screen label: a chunky arrow drawn as SVG so all four match. */
+export const keyLabel = (code) =>
+  `<svg class="arrow" viewBox="0 0 24 24" style="transform: rotate(${ARROW_ROTATION[code]}deg)">` +
+  `<path d="M12 2 L21 12 H15.5 V22 H8.5 V12 H3 Z" fill="currentColor"/></svg>`;
 
 export const SHIFT_LENGTH = 5;
 

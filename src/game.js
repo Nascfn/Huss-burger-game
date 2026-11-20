@@ -1,5 +1,5 @@
 // Game flow: shift -> orders -> steps -> 3 quick-time key presses per step.
-import { RECIPES, QTE_KEYS, SHIFT_LENGTH, makeOrder } from './orders.js';
+import { RECIPES, QTE_KEYS, SHIFT_LENGTH, makeOrder, normalizeKey } from './orders.js';
 import { wait } from './tween.js';
 import { saveGame } from './save.js';
 
@@ -87,8 +87,9 @@ export class Game {
     this.hud.updatePrompt(s);
   }
 
-  onKey(code) {
+  onKey(rawCode) {
     if (this.state !== 'playing') return;
+    const code = normalizeKey(rawCode);
     const s = this.step;
     if (!s || !s.accepting || !QTE_KEYS.includes(code)) return;
     if (code === s.recipe.keys[s.idx]) this.hit();

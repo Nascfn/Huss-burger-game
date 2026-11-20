@@ -37,6 +37,7 @@ document.getElementById('start-btn').addEventListener('click', start);
 document.getElementById('again-btn').addEventListener('click', start);
 
 window.addEventListener('keydown', (e) => {
+  if (e.code.startsWith('Arrow')) e.preventDefault(); // keep arrows from scrolling the page
   if (e.repeat) return;
   if (e.code === 'Enter') return start();
   if (e.code === 'KeyM') {

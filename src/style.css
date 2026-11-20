@@ -79,6 +79,8 @@ kbd {
   background: var(--cream); color: var(--ink);
   border-radius: 6px; box-shadow: 0 3px 0 #b9a888;
 }
+.arrow { width: 62%; height: 62%; display: block; }
+#key .arrow { width: 56px; height: 56px; }
 .recipe-list.big { display: inline-block; text-align: left; margin: 10px 0 18px; }
 .recipe-list.big .recipe-name { width: 80px; font-size: 16px; }
 .recipe-list.big kbd { width: 32px; height: 32px; font-size: 16px; }
@@ -96,7 +98,7 @@ kbd {
   text-shadow: 0 3px 0 rgba(0,0,0,0.5);
 }
 #key-wrap { position: relative; width: 120px; height: 120px; }
-#key-wrap svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+#key-wrap > svg { position: absolute; inset: 0; transform: rotate(-90deg); }
 .ring-bg { fill: rgba(43,29,22,0.85); stroke: rgba(255,255,255,0.15); stroke-width: 7; }
 #ring { fill: none; stroke: var(--yellow); stroke-width: 7; stroke-linecap: round; }
 #ring.low { stroke: var(--red); }

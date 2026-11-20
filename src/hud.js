@@ -122,12 +122,12 @@ export class Hud {
     const keyEl = $('key');
     const done = step.idx >= 3;
     if (fx === 'miss') {
-      keyEl.textContent = keyLabel(step.recipe.keys[step.idx]);
+      keyEl.innerHTML = keyLabel(step.recipe.keys[step.idx]);
       wrap.classList.remove('waiting');
       restartAnim(wrap, 'miss');
     } else {
       wrap.classList.remove('miss');
-      keyEl.textContent = done ? '✓' : keyLabel(step.recipe.keys[step.idx]);
+      keyEl.innerHTML = done ? '✓' : keyLabel(step.recipe.keys[step.idx]);
       wrap.classList.toggle('waiting', !step.accepting && !done);
       wrap.classList.toggle('done', done);
       if (fx === 'hit') restartAnim(keyEl, 'pop');
