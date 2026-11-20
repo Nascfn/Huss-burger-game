@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Huss Huss Huss</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bungee&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <div id="hud" class="hidden">
+      <div id="ticket" class="panel hidden">
+        <div class="ticket-head"><span>ORDER</span><span id="order-num">#1</span></div>
+        <ul id="ticket-items"></ul>
+        <div class="patience"><div id="patience-fill"></div></div>
+      </div>
+
+      <div id="scorebox" class="panel">
+        <div class="label">SCORE</div>
+        <div id="score">0</div>
+        <div id="combo"></div>
+      </div>
+
+      <div id="recipes" class="panel">
+        <div class="label">RECIPES</div>
+        <div class="recipe-list"></div>
+        <div id="mute" class="small"></div>
+      </div>
+
+      <div id="prompt" class="hidden">
+        <div id="step-label"></div>
+        <div id="key-wrap">
+          <svg viewBox="0 0 100 100">
+            <circle class="ring-bg" cx="50" cy="50" r="44" />
+            <circle id="ring" cx="50" cy="50" r="44" />
+          </svg>
+          <div id="key"></div>
+        </div>
+        <div id="pips"><span></span><span></span><span></span></div>
+      </div>
+
+      <div id="flash"></div>
+      <div id="popups"></div>
+    </div>
+
+    <div id="title" class="overlay">
+      <div class="card">
+        <h1>HUSS<br />HUSS<br />HUSS</h1>
+        <p class="tag">Pack the orders. Every clean move: <em>huss</em>.</p>
+        <p>Every item always uses the <strong>same 3 keys</strong>. Learn them, then go fast.</p>
+        <div class="recipe-list big"></div>
+        <button id="start-btn">Start shift</button>
+        <p class="small">or press Enter</p>
+        <p id="title-best" class="small"></p>
+      </div>
+    </div>
+
+    <div id="summary" class="overlay hidden">
+      <div class="card">
+        <h2>Shift over!</h2>
+        <div id="new-best" class="hidden">NEW HIGH SCORE!</div>
+        <dl id="summary-stats"></dl>
+        <button id="again-btn">Next shift</button>
+        <p class="small">or press Enter</p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
