@@ -199,5 +199,8 @@ export class Hud {
 
   setMuted(muted) {
     $('mute').textContent = muted ? 'Sound off (M)' : 'Sound on (M)';
+    const btn = $('sound-btn');
+    btn.textContent = muted ? '🔇' : '🔊';
+    btn.setAttribute('aria-label', muted ? 'Sound off. Tap to turn it on' : 'Sound on. Tap to mute');
   }
 }

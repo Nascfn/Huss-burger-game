@@ -20,7 +20,14 @@ html, body {
   background: #120a1c;
   color: var(--cream);
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-user-select: none;
   user-select: none;
+  /* Phones: no double-tap zoom, no pull-to-refresh, no grey flash on taps, no long-press menu. */
+  touch-action: manipulation;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-text-size-adjust: 100%;
 }
 
 #app canvas { display: block; }
@@ -259,7 +266,9 @@ button {
   border: none; border-radius: 12px; padding: 12px 24px;
   box-shadow: 0 5px 0 var(--red-dark); cursor: pointer;
 }
-button:hover { filter: brightness(1.1); }
+@media (hover: hover) {
+  button:hover { filter: brightness(1.1); }
+}
 button:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--red-dark); }
 button.secondary { background: #e9dcc0; color: var(--ink); box-shadow: 0 5px 0 #b9a888; }
 
@@ -277,7 +286,9 @@ button.secondary { background: #e9dcc0; color: var(--ink); box-shadow: 0 5px 0 #
   font-family: inherit; font-size: 13px;
   transition: transform 0.12s;
 }
-.level-card:hover:not(:disabled) { transform: translateY(-3px); border-color: var(--yellow); filter: none; }
+@media (hover: hover) {
+  .level-card:hover:not(:disabled) { transform: translateY(-3px); border-color: var(--yellow); filter: none; }
+}
 .level-card.current { border-color: var(--red); box-shadow: 0 5px 0 var(--red-dark); }
 .level-card.locked { opacity: 0.5; cursor: not-allowed; }
 .lv-emoji { font-size: 30px; }
@@ -324,4 +335,79 @@ button.secondary { background: #e9dcc0; color: var(--ink); box-shadow: 0 5px 0 #
   h1 { font-size: 36px; }
   .card { padding: 18px; }
   #level-list { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ---------- sound button (title and summary screens) ---------- */
+
+.icon-btn {
+  position: absolute; top: 12px; right: 12px; z-index: 5;
+  width: 48px; height: 48px; padding: 0;
+  display: grid; place-items: center;
+  font-family: inherit; font-size: 22px; line-height: 1;
+  background: var(--panel); color: var(--cream);
+  border: 2px solid rgba(255, 255, 255, 0.2); border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+.icon-btn:active { transform: scale(0.92); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); }
+/* While a party is on, the sound button steps aside (M still mutes on a keyboard). */
+#hud:not(.hidden) ~ #sound-btn { display: none; }
+
+/* ---------- touch screens: arrow pad ---------- */
+
+.touch-only { display: none; }
+body.touch .touch-only { display: block; }
+body.touch .keys-only { display: none; }
+
+#touch-pad {
+  display: none;
+  position: absolute;
+  /* Laid out like the arrow keys on a keyboard: up on top, left/down/right below. */
+  grid-template-columns: repeat(3, var(--pad));
+  grid-template-rows: repeat(2, var(--pad));
+  grid-template-areas: '. up .' 'left down right';
+  gap: 12px;
+  --pad: 108px;
+  touch-action: none;
+}
+body.touch #touch-pad { display: grid; }
+.pad-btn {
+  display: grid; place-items: center;
+  width: var(--pad); height: var(--pad); padding: 0;
+  background: rgba(255, 246, 226, 0.92); color: var(--ink);
+  border: none; border-radius: 22px;
+  box-shadow: 0 7px 0 #b9a888, 0 10px 22px rgba(0, 0, 0, 0.35);
+  touch-action: none;
+  cursor: pointer;
+}
+.pad-btn .arrow { width: 50%; height: 50%; }
+.pad-btn[data-key='KeyW'] { grid-area: up; }
+.pad-btn[data-key='KeyA'] { grid-area: left; }
+.pad-btn[data-key='KeyS'] { grid-area: down; }
+.pad-btn[data-key='KeyD'] { grid-area: right; }
+.pad-btn.pressed,
+.pad-btn:active { transform: translateY(5px); box-shadow: 0 2px 0 #b9a888, 0 4px 10px rgba(0, 0, 0, 0.35); background: var(--yellow); }
+
+/* Phone held upright: pad along the bottom, the key prompt just above it. */
+@media (orientation: portrait) {
+  body.touch #touch-pad { left: 50%; bottom: 28px; transform: translateX(-50%); }
+  body.touch #prompt { bottom: 300px; }
+  body.touch .popup { bottom: 500px; }
+}
+/* Shorter phones held upright: a slightly smaller pad keeps the food in view. */
+@media (orientation: portrait) and (max-height: 720px) {
+  body.touch #touch-pad { --pad: 88px; bottom: 20px; }
+  body.touch #prompt { bottom: 250px; }
+  body.touch .popup { bottom: 450px; }
+}
+/* Phone on its side: pad in the bottom-right corner, prompt stays in the middle. */
+@media (orientation: landscape) {
+  body.touch #touch-pad { right: 24px; bottom: 24px; --pad: 96px; }
+  body.touch #prompt { bottom: 24px; }
+  body.touch .popup { bottom: 224px; }
+}
+
+/* Narrow screens: the progress bar gets its own row so the ticket and combo don't cover it. */
+@media (max-width: 600px) {
+  #progress { left: 16px; right: 16px; width: auto; transform: none; }
+  #ticket, #combo { top: 70px; }
 }
