@@ -3,6 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#120a1c" />
+    <!-- Lets "Add to Home Screen" open the game full screen, with no browser bars -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Huss Huss Huss" />
     <title>Huss Huss Huss</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -48,6 +53,14 @@
         <div id="pips"><span></span><span></span><span></span></div>
       </div>
 
+      <!-- On-screen arrow pad for phones and tablets (only shown on touch screens) -->
+      <div id="touch-pad" aria-label="Arrow pad">
+        <button class="pad-btn" data-key="KeyW" aria-label="Up"></button>
+        <button class="pad-btn" data-key="KeyA" aria-label="Left"></button>
+        <button class="pad-btn" data-key="KeyS" aria-label="Down"></button>
+        <button class="pad-btn" data-key="KeyD" aria-label="Right"></button>
+      </div>
+
       <div id="flash"></div>
       <div id="banner"></div>
       <div id="popups"></div>
@@ -61,7 +74,8 @@
           Each item always uses the <strong>same 3 keys</strong>, so learn them and go fast.</p>
         <div id="level-list"></div>
         <div class="recipe-list big"></div>
-        <p class="small">Pick a party · Enter plays the next one · arrows or WASD · M to mute</p>
+        <p class="small keys-only">Pick a party · Enter plays the next one · arrows or WASD · M to mute</p>
+        <p class="small touch-only">Tap a party to play · tap the arrow pad in order</p>
       </div>
     </div>
 
@@ -79,6 +93,8 @@
         </div>
       </div>
     </div>
+
+    <button id="sound-btn" class="icon-btn" aria-label="Sound"></button>
 
     <script type="module" src="/src/main.js"></script>
   </body>

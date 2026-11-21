@@ -8,6 +8,7 @@ import { Game } from './game.js';
 import { LEVELS } from './levels.js';
 import { updateTweens } from './tween.js';
 import { loadGame, saveGame } from './save.js';
+import { setupTouch } from './touch.js';
 
 const save = loadGame();
 const { renderer, scene, camera, composer, resize } = createWorld(document.getElementById('app'));
@@ -43,20 +44,27 @@ hud.onPickLevel = (i) => game.startLevel(i);
 document.getElementById('next-btn').addEventListener('click', () => game.startNext());
 document.getElementById('list-btn').addEventListener('click', () => game.showTitle());
 
+const toggleMute = () => {
+  save.settings.muted = !save.settings.muted;
+  applyVolume();
+  saveGame(save);
+};
+
 window.addEventListener('keydown', (e) => {
   if (e.code.startsWith('Arrow')) e.preventDefault(); // keep arrows from scrolling the page
   if (e.repeat) return;
   if (e.code === 'Enter') return game.startNext();
-  if (e.code === 'KeyM') {
-    save.settings.muted = !save.settings.muted;
-    applyVolume();
-    saveGame(save);
-    return;
-  }
+  if (e.code === 'KeyM') return toggleMute();
   game.onKey(e.code);
 });
 
+// Phones and tablets: an on-screen arrow pad sends the same keys as the keyboard.
+setupTouch((code) => game.onKey(code));
+document.getElementById('sound-btn').addEventListener('click', toggleMute);
+
 window.addEventListener('resize', resize);
+// Phones can rotate without a resize event firing right away.
+window.addEventListener('orientationchange', () => setTimeout(resize, 250));
 
 // Debug handle for testing in the browser console.
 window.__game = game;

@@ -58,7 +58,10 @@ function wallBlock(w, h, x, y) {
 
 export function createWorld(container) {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  // Phones have very sharp screens but slower GPUs: a slightly lower render
+  // resolution keeps the game smooth there and is hard to notice.
+  const maxRatio = window.matchMedia('(pointer: coarse)').matches ? 1.5 : 2;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxRatio));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
