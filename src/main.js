@@ -9,9 +9,11 @@ import { LEVELS } from './levels.js';
 import { updateTweens } from './tween.js';
 import { loadGame, saveGame } from './save.js';
 import { setupTouch } from './touch.js';
+import { AutoQuality } from './quality.js';
 
 const save = loadGame();
-const { renderer, scene, camera, composer, resize } = createWorld(document.getElementById('app'));
+const { renderer, scene, camera, composer, bloom, resize, maxRatio } = createWorld(document.getElementById('app'));
+const quality = new AutoQuality({ renderer, bloom, resize, maxRatio });
 const rig = new CameraRig(camera);
 
 const stations = {
@@ -68,9 +70,12 @@ window.addEventListener('orientationchange', () => setTimeout(resize, 250));
 
 // Debug handle for testing in the browser console.
 window.__game = game;
+window.__renderer = renderer;
+window.__quality = quality;
 
 let last = performance.now();
 renderer.setAnimationLoop((now) => {
+  quality.frame(now - last);
   const dt = Math.min((now - last) / 1000, 0.05);
   last = now;
   updateTweens(dt);

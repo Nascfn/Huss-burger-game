@@ -72,6 +72,55 @@ export class GameAudio {
     osc.stop(t + 0.32);
   }
 
+  /** Sad "wah wah wah wahhh" when a party is lost. */
+  fail() {
+    const ctx = this.ctx;
+    const t0 = ctx.currentTime + 0.05;
+    [392, 370, 349, 330].forEach((freq, i) => {
+      const t = t0 + i * 0.34;
+      const last = i === 3;
+      const dur = last ? 1.0 : 0.3;
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, t);
+      if (last) {
+        osc.frequency.linearRampToValueAtTime(freq * 0.93, t + dur);
+        const lfo = ctx.createOscillator();
+        const depth = ctx.createGain();
+        lfo.frequency.value = 6;
+        depth.gain.value = 7;
+        lfo.connect(depth).connect(osc.frequency);
+        lfo.start(t);
+        lfo.stop(t + dur);
+      }
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 1100;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.2, t + 0.03);
+      g.gain.setValueAtTime(0.2, t + dur - 0.08);
+      g.gain.linearRampToValueAtTime(0, t + dur);
+      osc.connect(filter).connect(g).connect(this.master);
+      osc.start(t);
+      osc.stop(t + dur + 0.02);
+    });
+  }
+
+  /** Clock tick for the last seconds of a party. */
+  tick(urgent = false) {
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    osc.type = 'square';
+    osc.frequency.value = urgent ? 1760 : 1320;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(urgent ? 0.09 : 0.06, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+    osc.connect(g).connect(this.master);
+    osc.start(t);
+    osc.stop(t + 0.07);
+  }
+
   /** Bright two-note bell, used when an order is handed off. */
   ching() {
     this._bell(1318, 0, 0.18);

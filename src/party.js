@@ -199,6 +199,9 @@ class Guest {
   }
 }
 
+// Crowd members further out than this are built with less corner detail.
+const FAR_Z = -6.5;
+
 // ---------- the party ----------
 
 export class Party {
@@ -821,7 +824,11 @@ export class Party {
 
   buildLights(level) {
     const e = level.energy;
-    const colors = e <= 0 ? [0xffb070] : e === 1 ? [0xff7ab8, 0xffc070] : [0xff3cac, 0x2bd2ff, 0xffd23f];
+    // Always exactly 3 lights: the same light count at every party means the materials'
+    // shaders are compiled once, instead of again (with a stutter) each time a party starts.
+    const colors = e <= 0 ? [0xffb070, 0xffb070, 0xffb070] : e === 1 ? [0xff7ab8, 0xffc070, 0xff7ab8] : [0xff3cac, 0x2bd2ff, 0xffd23f];
+    // Small parties used to have 1-2 lights; spread the same total brightness over 3.
+    this.lightScale = [1 / 3, 2 / 3, 1, 1, 1][e];
     this.lights = colors.map((color, i) => {
       const l = new THREE.PointLight(color, 4, 18, 1);
       l.position.set(-4 + i * 4, 4, -8);
@@ -871,7 +878,7 @@ export class Party {
     const styles = STYLES[level.energy];
     const focus = level.props.stage ? new THREE.Vector3(0, 0, STAGE_Z) : level.props.djTable ? new THREE.Vector3(0, 0, -11.5) : null;
     for (const [x, z] of spots) {
-      const g = new Guest(this.crowdGroup, { partyHatChance: level.partyHats ?? 0.15 });
+      const g = new Guest(this.crowdGroup, { partyHatChance: level.partyHats ?? 0.15, far: z < FAR_Z });
       g.root.position.set(x, 0, z);
       g.style = pick(styles);
       if (focus && Math.random() < 0.75) g.root.rotation.y = Math.atan2(focus.x - x, focus.z - z) + rand(-0.3, 0.3);
@@ -935,6 +942,15 @@ export class Party {
     if (this.pending.length) this.spawnCustomer(this.queue.length);
   }
 
+  /** The party was lost: everyone still waiting in line gets mad. */
+  angerQueue() {
+    for (const g of this.queue) {
+      g.setMood('angry');
+      g.showBubble('😡', 'angry');
+      g.shout(1.15);
+    }
+  }
+
   removeGuest(g) {
     g.dispose();
     this.guests = this.guests.filter((x) => x !== g);
@@ -957,7 +973,7 @@ export class Party {
     const pulse = Math.pow(1 - (beat % 1), 2);
     const lp = this.lightPulse;
     this.lights.forEach((l, i) => {
-      l.intensity = 3 + 6 * lp * pulse;
+      l.intensity = (3 + 6 * lp * pulse) * this.lightScale;
       if (this.level.energy >= 2) {
         l.position.x = Math.sin(this.time * 0.5 + i * 2.1) * 5;
         l.position.z = -8 + Math.cos(this.time * 0.4 + i) * 3;

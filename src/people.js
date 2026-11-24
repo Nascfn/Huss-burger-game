@@ -17,10 +17,22 @@ const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 const tmpColor = new THREE.Color();
 
+// Building a rounded box is slow, and people reuse the same few sizes over and over,
+// so each size is built once and copied after that (much faster for big crowds).
+const roundedCache = new Map();
+// Rounding detail of the corners: 2 up close; far-away dancers use 1 (about a third of the triangles).
+let segments = 2;
+
 /** A rounded block, moved into place and painted one color. */
 export function block(w, h, d, color, x = 0, y = 0, z = 0, r = 0.03) {
-  const geo = new RoundedBoxGeometry(w, h, d, 2, Math.min(r, w / 2 - 0.001, h / 2 - 0.001, d / 2 - 0.001));
-  return paint(geo.translate(x, y, z), color);
+  const radius = Math.min(r, w / 2 - 0.001, h / 2 - 0.001, d / 2 - 0.001);
+  const key = `${w}|${h}|${d}|${radius}|${segments}`;
+  let base = roundedCache.get(key);
+  if (!base) {
+    base = new RoundedBoxGeometry(w, h, d, segments, radius);
+    roundedCache.set(key, base);
+  }
+  return paint(base.clone().translate(x, y, z), color);
 }
 
 /** A plain (sharp) box, moved into place and painted. Cheaper than `block` for big props. */
@@ -32,7 +44,12 @@ export function paint(geo, color) {
   tmpColor.set(color);
   const n = geo.attributes.position.count;
   const arr = new Float32Array(n * 3);
-  for (let i = 0; i < n; i++) arr.set([tmpColor.r, tmpColor.g, tmpColor.b], i * 3);
+  const { r, g, b } = tmpColor;
+  for (let i = 0; i < n * 3; i += 3) {
+    arr[i] = r;
+    arr[i + 1] = g;
+    arr[i + 2] = b;
+  }
   geo.setAttribute('color', new THREE.BufferAttribute(arr, 3));
   return geo;
 }
@@ -197,9 +214,11 @@ const shadowMat = new THREE.MeshBasicMaterial({ map: shadowTex, transparent: tru
 
 /**
  * Returns { root, body, head, face, legL, legR, armL, armR }. Faces +z.
+ * `far`: a simpler build for crowd members far from the window (nobody can tell the difference).
  * Body layout (meters): legs 0-0.72, torso 0.72-1.28, head 1.30-1.66.
  */
-export function makePerson({ partyHatChance = 0.3 } = {}) {
+export function makePerson({ partyHatChance = 0.3, far = false } = {}) {
+  segments = far ? 1 : 2;
   const skin = pick(SKIN);
   const shirt = pick(SHIRTS);
   const pants = pick(PANTS);
@@ -294,6 +313,7 @@ export function makePerson({ partyHatChance = 0.3 } = {}) {
   for (const m of [torso, headMesh, armL, armR, legL, legR]) m.castShadow = true;
 
   root.scale.setScalar(0.94 + Math.random() * 0.14);
+  segments = 2;
   return { root, body, head, face, legL, legR, armL, armR };
 }
 

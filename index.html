@@ -19,7 +19,11 @@
     <div id="hud" class="hidden">
       <!-- How much work is left at this party -->
       <div id="progress">
-        <div id="party-name"></div>
+        <div class="party-row">
+          <div id="lives" aria-label="Hearts left"></div>
+          <div id="party-name"></div>
+          <div id="clock" aria-label="Time left">0:00</div>
+        </div>
         <div class="bar"><div id="progress-fill"></div><span class="bar-icon">🍔</span></div>
       </div>
 

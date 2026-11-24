@@ -1,5 +1,7 @@
 // Each level is a different party, from a chill backyard hangout to a giant festival.
 // `energy` (0-4) drives the music layers, how wild the crowd dances, and the light show.
+// `lives` = hearts (one lost per mistake). `pace` = seconds per key press in the party clock;
+// smaller means less spare time.
 
 export const LEVELS = [
   {
@@ -10,6 +12,8 @@ export const LEVELS = [
     orders: 4,
     items: [1, 2],
     window: 2.0,
+    lives: 5,
+    pace: 0.95,
     guests: 10,
     bpm: 96,
     energy: 0,
@@ -26,6 +30,8 @@ export const LEVELS = [
     orders: 5,
     items: [1, 3],
     window: 1.75,
+    lives: 5,
+    pace: 0.8,
     guests: 20,
     bpm: 108,
     energy: 1,
@@ -43,6 +49,8 @@ export const LEVELS = [
     orders: 6,
     items: [2, 3],
     window: 1.5,
+    lives: 6,
+    pace: 0.68,
     guests: 36,
     bpm: 118,
     energy: 2,
@@ -59,6 +67,8 @@ export const LEVELS = [
     orders: 7,
     items: [2, 4],
     window: 1.3,
+    lives: 6,
+    pace: 0.58,
     guests: 58,
     bpm: 128,
     energy: 3,
@@ -75,6 +85,8 @@ export const LEVELS = [
     orders: 8,
     items: [3, 4],
     window: 1.15,
+    lives: 7,
+    pace: 0.5,
     guests: 88,
     bpm: 138,
     energy: 4,

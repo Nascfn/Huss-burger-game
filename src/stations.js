@@ -117,7 +117,7 @@ class Station {
   /** Bigger squash when all 3 presses are done. */
   complete() {
     const it = this.item;
-    return tween(0.3, (k) => {
+    return tween(0.2, (k) => {
       const p = Math.sin(k * Math.PI);
       it.scale.set(1 + p * 0.1, 1 - p * 0.18, 1 + p * 0.1);
     }, ease.outCubic, this);
@@ -139,6 +139,14 @@ class Station {
   stopAnims() {
     cancelTweens(this);
     if (this.item) this.item.scale.set(1, 1, 1);
+  }
+
+  /** Throw away the current item, half made or not, and start a fresh one (party restart). */
+  reset() {
+    cancelTweens(this);
+    this.gen = (this.gen || 0) + 1;
+    this.item?.removeFromParent();
+    this.buildItem();
   }
 }
 
@@ -510,10 +518,16 @@ export class BagStation extends Station {
     this.scene.attach(bag);
     const from = bag.position.clone();
     const to = guest.handWorld();
+    const gen = this.gen;
     await tween(0.6, (k) => {
       bag.position.lerpVectors(from, to, k);
       bag.position.y += Math.sin(k * Math.PI) * 0.3;
     }, ease.inOutCubic, this);
+    if (gen !== this.gen) {
+      // The party restarted mid-throw; reset() already set up a fresh bag.
+      bag.removeFromParent();
+      return;
+    }
     guest.hold(bag);
     guest.mode = 'hold';
     this.buildItem();

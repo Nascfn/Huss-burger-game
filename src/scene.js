@@ -57,11 +57,14 @@ function wallBlock(w, h, x, y) {
 }
 
 export function createWorld(container) {
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  // The post-processing below does its own anti-aliasing, so the canvas itself doesn't need it.
+  // "high-performance" asks laptops with two graphics chips to use the faster one.
+  const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
   // Phones have very sharp screens but slower GPUs: a slightly lower render
   // resolution keeps the game smooth there and is hard to notice.
-  const maxRatio = window.matchMedia('(pointer: coarse)').matches ? 1.5 : 2;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxRatio));
+  const coarse = window.matchMedia('(pointer: coarse)').matches;
+  const maxRatio = Math.min(window.devicePixelRatio, coarse ? 1.5 : 2);
+  renderer.setPixelRatio(maxRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -80,7 +83,8 @@ export function createWorld(container) {
   const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.01, 200);
 
   // Post-processing: bloom makes anything brighter than white (neon, lasers, string lights) glow.
-  const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
+  // Sharp (high-DPI) screens hide jagged edges on their own, so they need fewer MSAA samples.
+  const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: maxRatio >= 1.5 ? 2 : 4 });
   const composer = new EffectComposer(renderer, target);
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.7, 0.55, 1.25);
@@ -100,7 +104,7 @@ export function createWorld(container) {
   const key = new THREE.DirectionalLight(0xfff6e8, 1.8);
   key.position.set(0.6, 3, 1.4);
   key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.mapSize.setScalar(coarse ? 1024 : 2048);
   Object.assign(key.shadow.camera, { left: -2, right: 2, top: 2, bottom: -2, near: 0.5, far: 8 });
   key.shadow.bias = -0.0004;
   scene.add(key);
@@ -172,7 +176,7 @@ export function createWorld(container) {
   cabinet.castShadow = false;
   addBox(3.5, 0.03, 1.0, 0.2, COUNTER_Y - 0.015, -0.2, std(0xaeb3ba, { metalness: 0.35, roughness: 0.55 }));
 
-  return { renderer, scene, camera, composer, resize };
+  return { renderer, scene, camera, composer, bloom, resize, maxRatio };
 }
 
 const lerp = (a, b, t) => a + (b - a) * t;
